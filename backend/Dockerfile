@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install FFmpeg (required for audio conversion in WhatsApp bots)
 RUN apk add --no-cache ffmpeg
