@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: crmpaiol_frontend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    restart: always
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: crmpaiol_backend:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # As variáveis sensíveis como chaves de API e Supabase devem ser
+      # injetadas pelo Portainer (seção Environment variables na Stack).
+    restart: always
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
