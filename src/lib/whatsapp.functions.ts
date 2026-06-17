@@ -97,9 +97,7 @@ export const wuzapiCreateInstance = createServerFn({ method: "POST" })
     // 2. Configurar Webhook apenas se base URL existir
     let webhookConfigured = false;
     if (base) {
-      const webhookUrl = `${base}/api/public/whatsapp/webhook/${encodeURIComponent(
-        data.instanceName,
-      )}?unidade=${data.unidadeId}`;
+      const webhookUrl = `${base}/webhook`;
       await wuzapi("/webhook", {
         method: "POST",
         headers: { "token": userToken },

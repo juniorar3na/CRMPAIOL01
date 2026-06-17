@@ -14,6 +14,7 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - WUZAPI_URL=${WUZAPI_URL}
       - WUZAPI_ADMIN_TOKEN=${WUZAPI_ADMIN_TOKEN}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL}
     networks:
       - wdraper
     deploy:
