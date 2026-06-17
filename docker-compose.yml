@@ -5,6 +5,10 @@ services:
     image: ghcr.io/juniorar3na/crmpaiol_frontend:latest
     environment:
       - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
+      - VITE_AI_BACKEND_URL=${VITE_AI_BACKEND_URL}
     networks:
       - wdraper
     deploy:
@@ -30,6 +34,13 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - WUZAPI_URL=${WUZAPI_URL}
+      - WUZAPI_ADMIN_TOKEN=${WUZAPI_ADMIN_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL}
       # Supabase e chaves devem ser injetadas no Portainer
     networks:
       - wdraper
