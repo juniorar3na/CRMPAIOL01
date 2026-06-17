@@ -6,30 +6,58 @@ services:
       context: .
       dockerfile: Dockerfile
     image: crmpaiol_frontend:latest
-    ports:
-      - "8080:8080"
     environment:
       - NODE_ENV=production
-    restart: always
+    networks:
+      - wdraper
     deploy:
+      mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
       restart_policy:
         condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.crm_frontend.rule=Host(`crm.wdraper.com.br`)
+        - traefik.http.routers.crm_frontend.entrypoints=websecure
+        - traefik.http.routers.crm_frontend.priority=10
+        - traefik.http.routers.crm_frontend.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.crm_frontend.service=crm_frontend
+        - traefik.http.services.crm_frontend.loadbalancer.server.port=8080
+        - traefik.http.services.crm_frontend.loadbalancer.passHostHeader=1
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     image: crmpaiol_backend:latest
-    ports:
-      - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
-      # As variáveis sensíveis como chaves de API e Supabase devem ser
-      # injetadas pelo Portainer (seção Environment variables na Stack).
-    restart: always
+      # Supabase e chaves devem ser injetadas no Portainer
+    networks:
+      - wdraper
     deploy:
+      mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
       restart_policy:
         condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.crm_backend.rule=Host(`api-crm.wdraper.com.br`)
+        - traefik.http.routers.crm_backend.entrypoints=websecure
+        - traefik.http.routers.crm_backend.priority=10
+        - traefik.http.routers.crm_backend.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.crm_backend.service=crm_backend
+        - traefik.http.services.crm_backend.loadbalancer.server.port=3001
+        - traefik.http.services.crm_backend.loadbalancer.passHostHeader=1
+
+networks:
+  wdraper:
+    external: true
+    name: wdraper
