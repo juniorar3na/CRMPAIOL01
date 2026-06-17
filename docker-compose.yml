@@ -2,15 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
-        - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
-        - VITE_AI_BACKEND_URL=${VITE_AI_BACKEND_URL}
-    image: crmpaiol_frontend:latest
+    image: ghcr.io/juniorar3na/crmpaiol_frontend:latest
     environment:
       - NODE_ENV=production
     networks:
@@ -34,10 +26,7 @@ services:
         - traefik.http.services.crm_frontend.loadbalancer.passHostHeader=1
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: crmpaiol_backend:latest
+    image: ghcr.io/juniorar3na/crmpaiol_backend:latest
     environment:
       - NODE_ENV=production
       - PORT=3001
