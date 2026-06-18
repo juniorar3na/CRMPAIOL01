@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, MapPin, Trash2 } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2 } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -55,6 +55,7 @@ function UnidadesPage() {
   const [items, setItems] = useState<DbUnidade[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
 
   async function carregar() {
@@ -81,33 +82,72 @@ function UnidadesPage() {
     if (!form.nome.trim()) return toast.error("Informe o nome da unidade");
     if (!clinicaId) return toast.error("Selecione uma clínica no seletor global");
     
-    const clinicaAtual = clinicas.find(c => c.id === clinicaId);
-    if (clinicaAtual && items.length >= clinicaAtual.limite_unidades) {
-      return toast.error(`Limite de unidades atingido para esta clínica (${clinicaAtual.limite_unidades}).`);
-    }
-
     const servicos = form.servicos
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    const { error } = await supabase.from("unidades").insert({
-      clinica_id: clinicaId,
-      nome: form.nome,
-      endereco: form.endereco || null,
-      bairro: form.bairro || null,
-      cidade: form.cidade || null,
-      horario_funcionamento: form.horario_funcionamento || null,
-      atende_24h: form.atende_24h,
-      whatsapp: form.whatsapp || null,
-      google_maps_url: form.google_maps_url || null,
-      laboratorio_url: form.laboratorio_url || null,
-      servicos,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Unidade cadastrada");
+
+    if (editingId) {
+      const { error } = await supabase.from("unidades").update({
+        nome: form.nome,
+        endereco: form.endereco || null,
+        bairro: form.bairro || null,
+        cidade: form.cidade || null,
+        horario_funcionamento: form.horario_funcionamento || null,
+        atende_24h: form.atende_24h,
+        whatsapp: form.whatsapp || null,
+        google_maps_url: form.google_maps_url || null,
+        laboratorio_url: form.laboratorio_url || null,
+        servicos,
+      }).eq("id", editingId);
+      
+      if (error) return toast.error(error.message);
+      toast.success("Unidade atualizada");
+    } else {
+      const clinicaAtual = clinicas.find(c => c.id === clinicaId);
+      if (clinicaAtual && items.length >= clinicaAtual.limite_unidades) {
+        return toast.error(`Limite de unidades atingido para esta clínica (${clinicaAtual.limite_unidades}).`);
+      }
+
+      const { error } = await supabase.from("unidades").insert({
+        clinica_id: clinicaId,
+        nome: form.nome,
+        endereco: form.endereco || null,
+        bairro: form.bairro || null,
+        cidade: form.cidade || null,
+        horario_funcionamento: form.horario_funcionamento || null,
+        atende_24h: form.atende_24h,
+        whatsapp: form.whatsapp || null,
+        google_maps_url: form.google_maps_url || null,
+        laboratorio_url: form.laboratorio_url || null,
+        servicos,
+      });
+      if (error) return toast.error(error.message);
+      toast.success("Unidade cadastrada");
+    }
+
     setForm(EMPTY);
+    setEditingId(null);
     setOpen(false);
     carregar();
+  }
+
+  async function abrirEdicao(u: DbUnidade) {
+    setForm({
+      clinica_id: u.clinica_id,
+      nome: u.nome,
+      endereco: u.endereco || "",
+      bairro: u.bairro || "",
+      cidade: u.cidade || "",
+      horario_funcionamento: u.horario_funcionamento || "",
+      atende_24h: u.atende_24h,
+      whatsapp: u.whatsapp || "",
+      google_maps_url: u.google_maps_url || "",
+      laboratorio_url: u.laboratorio_url || "",
+      servicos: u.servicos.join(", "),
+    });
+    setEditingId(u.id);
+    setOpen(true);
   }
 
   async function excluir(id: string) {
@@ -136,6 +176,8 @@ function UnidadesPage() {
             <button
               onClick={() => {
                 if (reachedLimit) return toast.error(`Limite de unidades (${clinicaAtual?.limite_unidades}) atingido.`);
+                setEditingId(null);
+                setForm(EMPTY);
                 setOpen(true);
               }}
               disabled={reachedLimit}
@@ -166,12 +208,20 @@ function UnidadesPage() {
                     {u.endereco || "Endereço não informado"}
                   </p>
                 </div>
-                <button
-                  onClick={() => excluir(u.id)}
-                  className="text-muted-foreground hover:text-urgent"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => abrirEdicao(u)}
+                    className="text-muted-foreground hover:text-brand"
+                  >
+                    <Edit2 className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => excluir(u.id)}
+                    className="text-muted-foreground hover:text-urgent"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
                 {u.atende_24h && (
@@ -201,9 +251,9 @@ function UnidadesPage() {
       )}
 
       {open && (
-        <FormDialog onClose={() => setOpen(false)}>
+        <FormDialog onClose={() => { setOpen(false); setEditingId(null); setForm(EMPTY); }}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="text-lg font-semibold tracking-tight">Cadastrar unidade</h2>
+            <h2 className="text-lg font-semibold tracking-tight">{editingId ? "Editar unidade" : "Cadastrar unidade"}</h2>
             <Grid>
 
               <Field label="Nome da unidade *">
@@ -264,7 +314,7 @@ function UnidadesPage() {
                 placeholder="Consulta, vacinas, exames, internação"
               />
             </Field>
-            <DialogFooter onCancel={() => setOpen(false)} submitLabel="Cadastrar unidade" />
+            <DialogFooter onCancel={() => setOpen(false)} submitLabel={editingId ? "Salvar alterações" : "Cadastrar unidade"} />
           </form>
         </FormDialog>
       )}
