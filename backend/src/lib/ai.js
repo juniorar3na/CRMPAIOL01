@@ -85,33 +85,50 @@ export async function generateAIResponse({
   const history = await getConversationHistory(instanceId, senderJid);
 
   // 2. Monta o conteúdo da mensagem atual
-  let userContent;
+  let userContentForOpenAI;
+  let userContentForHistory;
 
   if (imageBase64) {
     // Monta mensagem com imagem para GPT-4o Vision
-    userContent = [
+    userContentForOpenAI = [
       {
         type: 'image_url',
         image_url: { url: imageBase64, detail: 'auto' },
       },
     ];
+    
+    userContentForHistory = textContent ? `[Imagem enviada] ${textContent}` : '[Imagem enviada]';
+    
     if (textContent) {
-      userContent.push({ type: 'text', text: textContent });
+      userContentForOpenAI.push({ type: 'text', text: textContent });
     } else {
-      userContent.push({ type: 'text', text: 'O que você vê nesta imagem?' });
+      userContentForOpenAI.push({ type: 'text', text: 'O que você vê nesta imagem?' });
     }
   } else {
-    userContent = textContent || '';
+    userContentForOpenAI = textContent || '';
+    userContentForHistory = textContent || '';
   }
 
-  // 3. Salva a mensagem do usuário no histórico
-  await saveToHistory(instanceId, senderJid, 'user', userContent);
+  // 3. Salva a mensagem do usuário no histórico (apenas texto, sem base64)
+  await saveToHistory(instanceId, senderJid, 'user', userContentForHistory);
+
+  // Limpa histórico antigo caso tenha arrays com imagens (evita estourar limite de tokens)
+  const parsedHistory = history.map(h => {
+    let content = h.content;
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        content = parsed.filter(item => item.type === 'text').map(item => item.text).join(' ') || '[Imagem]';
+      }
+    } catch (e) {}
+    return { role: h.role, content };
+  });
 
   // 4. Monta os messages para a OpenAI com system prompt + histórico completo
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...history,
-    { role: 'user', content: userContent },
+    ...parsedHistory,
+    { role: 'user', content: userContentForOpenAI },
   ];
 
   // 5. Chama a API da OpenAI
