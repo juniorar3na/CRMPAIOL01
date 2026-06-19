@@ -2,8 +2,8 @@ import { generateAIResponse, transcribeAudio, calculateTypingDelay, updateConver
 import { setPresence, sendText } from './wuzapi.js';
 import { insertMensagem } from './supabase.js';
 
-// Tempo de debounce: 10 segundos
-const DEBOUNCE_DELAY_MS = 10000;
+// Tempo de debounce: 5 segundos
+const DEBOUNCE_DELAY_MS = 5000;
 
 // Mapa para armazenar as filas de mensagens por usuário
 // Chave: `${instanceId}_${senderJid}`
