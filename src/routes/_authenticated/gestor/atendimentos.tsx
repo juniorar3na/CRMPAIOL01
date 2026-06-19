@@ -101,6 +101,7 @@ export function GestorAtendimentos() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [activeTab, setActiveTab] = useState<RightTab>("conversa");
+  const [filtroNaoLidas, setFiltroNaoLidas] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   const selectedIdRef = useRef(selectedId);
@@ -227,10 +228,11 @@ export function GestorAtendimentos() {
 
   const filtradas = conversas.filter(
     (c) =>
-      c.tutor.toLowerCase().includes(busca.toLowerCase()) ||
+      (!filtroNaoLidas || c.unread_by_human) &&
+      (c.tutor.toLowerCase().includes(busca.toLowerCase()) ||
       (c.pet ?? "").toLowerCase().includes(busca.toLowerCase()) ||
       (c.telefone ?? "").includes(busca) ||
-      (c.motivo ?? "").toLowerCase().includes(busca.toLowerCase()),
+      (c.motivo ?? "").toLowerCase().includes(busca.toLowerCase())),
   ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
   /* ─── Metrics ─── */
@@ -244,6 +246,11 @@ export function GestorAtendimentos() {
   }, [conversas]);
 
   /* ─── Actions via Backend ─── */
+
+  async function markAsRead(id: string) {
+    setConversas((prev) => prev.map((c) => c.id === id ? { ...c, unread_by_human: false } : c));
+    await supabase.from("conversas").update({ unread_by_human: false }).eq("id", id);
+  }
 
   async function patchConversa(patch: Partial<DbConversa>) {
     if (!selecionada) return;
@@ -515,10 +522,18 @@ export function GestorAtendimentos() {
                   className="pl-8 h-9 text-sm"
                 />
               </div>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 shrink-0">
-                <SlidersHorizontal className="size-3.5" />
-                Filtros
-              </Button>
+              <div className="flex items-center gap-2 shrink-0 bg-background border border-black/5 rounded-md px-3 h-9">
+                <input 
+                  type="checkbox" 
+                  id="filtro-nao-lidas" 
+                  className="rounded border-gray-300 text-brand focus:ring-brand size-3.5 cursor-pointer"
+                  checked={filtroNaoLidas}
+                  onChange={(e) => setFiltroNaoLidas(e.target.checked)}
+                />
+                <label htmlFor="filtro-nao-lidas" className="text-sm cursor-pointer select-none text-muted-foreground hover:text-foreground">
+                  Apenas não lidas
+                </label>
+              </div>
             </div>
 
             {/* Column headers */}
@@ -546,6 +561,9 @@ export function GestorAtendimentos() {
                   onClick={() => {
                     setSelectedId(c.id);
                     setActiveTab("conversa");
+                    if (c.unread_by_human) {
+                      markAsRead(c.id);
+                    }
                   }}
                   className={`w-full text-left px-4 py-3 border-b border-black/5 transition-colors ${
                     ativa
@@ -596,7 +614,10 @@ export function GestorAtendimentos() {
 
                     {/* Time */}
                     <span className="text-xs text-muted-foreground tabular-nums w-14 text-right whitespace-nowrap">
-                      {dataLabel(c.updated_at)}{" "}
+                      <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                        {c.unread_by_human && <span className="inline-block size-2.5 rounded-full bg-orange-500" />}
+                        <span>{dataLabel(c.updated_at)}</span>
+                      </div>
                       <span className="block text-[10px]">
                         {horaCurta(c.updated_at)}
                       </span>
@@ -1095,7 +1116,23 @@ function EditTutorModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(val) => {
+        setOpen(val);
+        if (val) {
+          setFormData({
+            tutor: conversa.tutor,
+            telefone: conversa.telefone ?? "",
+            cpf: conversa.cpf ?? "",
+            pet: conversa.pet ?? "",
+            especie: conversa.especie ?? "",
+            raca: conversa.raca ?? "",
+            idade: conversa.idade ?? "",
+          });
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 flex-1">
           <Pencil className="size-3" />

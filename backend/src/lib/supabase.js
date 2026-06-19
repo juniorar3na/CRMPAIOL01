@@ -24,7 +24,7 @@ export async function registerConversation(telefone, tutorName, clinicaId, unida
 
     if (existing) {
       // Já existe, atualiza apenas o updated_at para subir no painel (e o lid se for novo)
-      const updateData = { updated_at: new Date().toISOString() };
+      const updateData = { updated_at: new Date().toISOString(), unread_by_human: true };
       if (lid) updateData.whatsapp_lid = lid;
       
       await supabase
@@ -44,7 +44,8 @@ export async function registerConversation(telefone, tutorName, clinicaId, unida
         clinica_id: clinicaId,
         unidade_id: unidadeId,
         status: 'IA respondendo',
-        origem: 'WhatsApp'
+        origem: 'WhatsApp',
+        unread_by_human: true
       })
       .select()
       .single();
@@ -80,7 +81,11 @@ export async function insertMensagem(conversaId, remetente, conteudo) {
     }
     
     // Atualiza o updated_at da conversa para subir no painel
-    await supabase.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaId);
+    const updateData = { updated_at: new Date().toISOString() };
+    if (remetente === 'tutor') {
+      updateData.unread_by_human = true;
+    }
+    await supabase.from('conversas').update(updateData).eq('id', conversaId);
     
     return data;
   } catch (err) {

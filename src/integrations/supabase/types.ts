@@ -141,6 +141,7 @@ export type Database = {
           telefone: string | null
           tutor: string
           unidade_id: string
+          unread_by_human: boolean
           updated_at: string
         }
         Insert: {
@@ -164,6 +165,7 @@ export type Database = {
           telefone?: string | null
           tutor: string
           unidade_id: string
+          unread_by_human?: boolean
           updated_at?: string
         }
         Update: {
@@ -187,6 +189,7 @@ export type Database = {
           telefone?: string | null
           tutor?: string
           unidade_id?: string
+          unread_by_human?: boolean
           updated_at?: string
         }
         Relationships: [
