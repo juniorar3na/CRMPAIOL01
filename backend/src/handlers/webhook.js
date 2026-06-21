@@ -214,9 +214,6 @@ export async function handleWebhook(req, res) {
 
     // Lógica de Handoff (Atendimento Humano)
     if (isFromMe) {
-      console.log(`[Webhook] Mensagem enviada pelo proprietário para ${senderJid}. Ativando Handoff de 30 min.`);
-      setHandoff(instance.id, senderJid);
-      
       let contentToSave = textContent;
       if (audioBase64 && !contentToSave) {
         try {
@@ -228,6 +225,24 @@ export async function handleWebhook(req, res) {
         contentToSave = '[Imagem enviada pelo proprietário]';
       }
 
+      // Verifica se a mensagem acabou de ser salva pela IA ou CRM para ignorar o Handoff
+      if (contentToSave && conversaId) {
+        const { data: recente } = await supabase.from('mensagens').select('remetente')
+          .eq('conversa_id', conversaId)
+          .eq('conteudo', contentToSave)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recente && (recente.remetente === 'ia' || recente.remetente === 'recepcao')) {
+          console.log('[Webhook] Mensagem de isFromMe já foi registrada pela IA ou CRM. Ignorando Handoff.');
+          return; // Encerra, não chama a IA nem ativa handoff
+        }
+      }
+
+      console.log(`[Webhook] Mensagem enviada pelo proprietário para ${senderJid}. Ativando Handoff de 30 min.`);
+      setHandoff(instance.id, senderJid);
+      
       if (contentToSave) {
         await saveToHistory(instance.id, senderJid, 'assistant', contentToSave);
         if (conversaId) {

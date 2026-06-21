@@ -59,8 +59,9 @@ export async function deleteWebhook(instanceToken) {
  * Media: "audio" = gravando audio (opcional)
  */
 export async function setPresence(instanceToken, phone, state = 'composing', media = null) {
+  const cleanPhone = phone.split('@')[0];
   const client = wuzClient(instanceToken);
-  const body = { Phone: phone, State: state };
+  const body = { Phone: cleanPhone, State: state };
   if (media) body.Media = media;
 
   const response = await client.post('/chat/presence', body);
@@ -71,9 +72,10 @@ export async function setPresence(instanceToken, phone, state = 'composing', med
  * Envia uma mensagem de texto simples para um número.
  */
 export async function sendText(instanceToken, phone, text) {
+  const cleanPhone = phone.split('@')[0];
   const client = wuzClient(instanceToken);
   const response = await client.post('/chat/send/text', {
-    Phone: phone,
+    Phone: cleanPhone,
     Body: text,
   });
   return response.data;
@@ -104,9 +106,10 @@ export async function downloadAudio(instanceToken, mediaPayload) {
  * PTT = true indica push-to-talk (mensagem de voz).
  */
 export async function sendAudio(instanceToken, phone, audioBase64, ptt = true) {
+  const cleanPhone = phone.split('@')[0];
   const client = wuzClient(instanceToken);
   const response = await client.post('/chat/send/audio', {
-    Phone: phone,
+    Phone: cleanPhone,
     Audio: audioBase64,
     PTT: ptt,
     MimeType: 'audio/ogg; codecs=opus',
@@ -119,9 +122,10 @@ export async function sendAudio(instanceToken, phone, audioBase64, ptt = true) {
  * O documento deve ser base64 encoded.
  */
 export async function sendDocument(instanceToken, phone, documentBase64, fileName) {
+  const cleanPhone = phone.split('@')[0];
   const client = wuzClient(instanceToken);
   const response = await client.post('/chat/send/document', {
-    Phone: phone,
+    Phone: cleanPhone,
     Document: documentBase64,
     FileName: fileName,
   });
@@ -132,9 +136,10 @@ export async function sendDocument(instanceToken, phone, documentBase64, fileNam
  * Verifica se os números possuem conta no WhatsApp e retorna o JID validado.
  */
 export async function checkUser(instanceToken, phone) {
+  const cleanPhone = phone.split('@')[0];
   const client = wuzClient(instanceToken);
   const response = await client.post('/user/check', {
-    Phone: [phone],
+    Phone: [cleanPhone],
   });
   const users = response.data?.data?.Users || [];
   return users[0] || null;
