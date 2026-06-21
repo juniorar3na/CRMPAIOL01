@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import fetch from 'node-fetch';
 import { supabase } from './supabase.js';
 
 // Função para instanciar o OpenAI com a chave configurada no painel
@@ -15,7 +16,7 @@ async function getOpenAI() {
   }
 
   return {
-    openai: new OpenAI({ apiKey }),
+    openai: new OpenAI({ apiKey, fetch }),
     defaultModel: data?.openai_model || 'gpt-4o-mini'
   };
 }
