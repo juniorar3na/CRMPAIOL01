@@ -162,9 +162,14 @@ async function processQueue(queueKey) {
     }
 
   } catch (error) {
-    console.error(`[Debounce] ❌ Erro ao processar fila agrupada de ${senderJid}:`, error.message);
-    console.error(error.stack);
-
+    console.error(`[Debounce] ❌ Erro ao processar fila agrupada de ${senderJid}:`, error);
+    if (conversaId) {
+      try {
+        await insertMensagem(conversaId, 'ia', `❌ Erro interno da IA: ${error.message}`);
+      } catch (dbError) {}
+    }
+  } finally {
+    userQueues.delete(queueKey);
     try {
       await setPresence(apiToken, senderJid, 'paused');
     } catch (_) {}
