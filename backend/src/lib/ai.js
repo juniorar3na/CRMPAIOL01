@@ -1,7 +1,24 @@
 import OpenAI from 'openai';
 import { supabase } from './supabase.js';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Função para instanciar o OpenAI com a chave configurada no painel
+async function getOpenAI() {
+  const { data } = await supabase
+    .from("agencia_configuracoes")
+    .select("openai_api_key, openai_model")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const apiKey = data?.openai_api_key || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY não configurada no banco nem no ambiente.");
+  }
+
+  return {
+    openai: new OpenAI({ apiKey }),
+    defaultModel: data?.openai_model || 'gpt-4o-mini'
+  };
+}
 
 /**
  * Busca o histórico de conversa de um número no Supabase (memória longa).
@@ -54,6 +71,7 @@ export async function transcribeAudio(base64Audio) {
   // A OpenAI precisa de um File-like object com nome, usamos o helper do SDK
   const file = await toFile(buffer, 'audio.ogg', { type: 'audio/ogg' });
 
+  const { openai } = await getOpenAI();
   const transcription = await openai.audio.transcriptions.create({
     file,
     model: 'whisper-1',
@@ -132,7 +150,8 @@ export async function generateAIResponse({
   ];
 
   // 5. Chama a API da OpenAI
-  const model = imageBase64 ? 'gpt-4o' : 'gpt-4o-mini';
+  const { openai, defaultModel } = await getOpenAI();
+  const model = imageBase64 ? 'gpt-4o' : defaultModel;
   console.log(`[AI] Chamando modelo ${model}...`);
 
   const completion = await openai.chat.completions.create({
@@ -164,8 +183,9 @@ export async function updateConversationSummary(instanceId, senderJid, conversaI
     
     const transcript = history.map(h => `${h.role === 'user' ? 'Cliente' : 'Atendente/IA'}: ${h.content}`).join('\n');
     
+    const { openai, defaultModel } = await getOpenAI();
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: defaultModel,
       messages: [
         {
           role: 'system',
